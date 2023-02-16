@@ -23,5 +23,5 @@ MsgBox ctr & fl2.Name
     Cells(ctr, 4) = fl2.DateLastModified
     listfolders fl2.Path
 Next
-
+ 
 End Sub
