@@ -1,0 +1,27 @@
+Sub PrintFolderSize()
+Static ctr As Integer
+ctr = 1
+listfolders ("D:\VirtualBox VMs\")
+End Sub
+
+Static Sub listfolders(startfolder)
+''Reference Windows Script Host Object Model
+''If you prefer, just Dim everything as Object
+''and use CreateObject("Scripting.FileSystemObject")
+Dim fs As New FileSystemObject
+Dim fl1 As Folder
+Dim fl2 As Folder
+
+Set fl1 = fs.GetFolder(startfolder)
+
+For Each fl2 In fl1.SubFolders
+ctr = ctr + 1
+MsgBox ctr & fl2.Name
+    Cells(ctr, 1) = fl2.ParentFolder
+    Cells(ctr, 2) = fl2.Path
+    Cells(ctr, 3) = fl2.Size
+    Cells(ctr, 4) = fl2.DateLastModified
+    listfolders fl2.Path
+Next
+
+End Sub
