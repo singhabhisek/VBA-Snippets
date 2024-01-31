@@ -1,6 +1,210 @@
 SELECT Event_map.[Event Name], Count(*) AS Samples, Min(Event_meter.Value) AS Minimum, Avg(Event_meter.Value) AS Average, Max(Event_meter.Value) AS Maximum, StDev(Event_meter.Value) AS [Standard Deviation], Sum(Event_meter.Value) AS TotalTime FROM TransactionEndStatus INNER JOIN (Event_map INNER JOIN Event_meter ON Event_map.[Event ID] = Event_meter.[Event ID]) ON TransactionEndStatus.Status1 = Event_meter.Status1 WHERE (((TransactionEndStatus.[Transaction End Status])="Pass")) GROUP BY Event_map.[Event Name] ORDER BY Sum(Event_meter.Value) DESC;
 
 
+-====================================
+
+import csv
+import pyodbc
+from collections import defaultdict
+from openpyxl import Workbook
+
+# Connect to the Access database using pyodbc
+connection_string = r'DRIVER={Microsoft Access Driver (*.mdb)};DBQ=path\to\abcd.mdb;'
+connection = pyodbc.connect(connection_string)
+cursor = connection.cursor()
+
+# Execute the query
+query = "select trxName, TrxValue, trxStatus from Table1;"
+cursor.execute(query)
+
+# Fetch the data
+data = cursor.fetchall()
+
+# Close the database connection
+connection.close()
+
+# Process the fetched data
+transactions = defaultdict(list)
+fail_counts = defaultdict(int)
+
+for row in data:
+    trx_name, trx_value, trx_status = row.TrxName, row.TrxValue, row.TrxStatus
+
+    if trx_status == 'PASS':
+        transactions[trx_name].append(int(trx_value))
+    elif trx_status == 'FAIL':
+        fail_counts[trx_name] += 1
+
+# Calculate and write results to Excel
+wb = Workbook()
+ws = wb.active
+
+# Write headers
+headers = ["TrxName", "Min", "Max", "Avg", "SelectedResponseTime", "PASS", "FAIL"]
+ws.append(headers)
+
+for trx_name, rt_values in transactions.items():
+    if trx_name in fail_counts:
+        fail_count = fail_counts[trx_name]
+    else:
+        fail_count = 0
+
+    if rt_values:
+        min_rt = min(rt_values)
+        max_rt = max(rt_values)
+        avg_rt = sum(rt_values) / len(rt_values)
+        selected_rt_index = int((len(rt_values) - 1) * 0.9)
+        selected_rt = sorted(rt_values)[selected_rt_index]
+    else:
+        min_rt = max_rt = avg_rt = selected_rt = 0
+
+    pass_count = len(rt_values)
+
+    ws.append([trx_name, min_rt, max_rt, avg_rt, selected_rt, pass_count, fail_count])
+
+# Save the Excel file
+wb.save('output.xlsx')
+
+
+=====================================
+
+import win32com.client
+from collections import defaultdict
+from openpyxl import Workbook
+
+# Connection setup
+db_path = r'C:\path\to\abcd.mdb'  # Replace with the actual path to your Access database file
+
+# Connect to the Access database using win32com.client
+try:
+    # Create an instance of the Access application
+    access_app = win32com.client.Dispatch("Access.Application")
+
+    # Open the Access database
+    access_db = access_app.DBEngine.OpenDatabase(db_path)
+
+    # Execute your query and fetch the data
+    query = "SELECT trxName, TrxValue, trxStatus FROM Table1;"
+    data = access_db.QueryDefs["YourQueryName"].OpenRecordset().GetRows()
+
+    # Process the fetched data and perform calculations
+    transactions = defaultdict(list)
+    fail_counts = defaultdict(int)
+
+    for row in data:
+        trx_name, trx_value, trx_status = row[0], row[1], row[2]
+
+        if trx_status == 'PASS':
+            transactions[trx_name].append(int(trx_value))
+        elif trx_status == 'FAIL':
+            fail_counts[trx_name] += 1
+
+    # Calculate and write results to Excel
+    wb = Workbook()
+    ws = wb.active
+
+    # Write headers
+    headers = ["TrxName", "Min", "Max", "Avg", "SelectedResponseTime", "PASS", "FAIL"]
+    ws.append(headers)
+
+    for trx_name, rt_values in transactions.items():
+        if trx_name in fail_counts:
+            fail_count = fail_counts[trx_name]
+        else:
+            fail_count = 0
+
+        if rt_values:
+            min_rt = min(rt_values)
+            max_rt = max(rt_values)
+            avg_rt = sum(rt_values) / len(rt_values)
+            selected_rt_index = int((len(rt_values) - 1) * 0.9)
+            selected_rt = sorted(rt_values)[selected_rt_index]
+        else:
+            min_rt = max_rt = avg_rt = selected_rt = 0
+
+        pass_count = len(rt_values)
+
+        ws.append([trx_name, min_rt, max_rt, avg_rt, selected_rt, pass_count, fail_count])
+
+    # Save the Excel file
+    wb.save('output.xlsx')
+
+    # Close the Access database
+    access_db.Close()
+
+except Exception as e:
+    print(f"Error: {e}")
+
+finally:
+    # Quit the Access application
+    access_app.Quit()
+
+=======================
+
+from collections import defaultdict
+from openpyxl import Workbook
+from mdbtools import mdb
+
+# Connection setup
+db_path = r'C:\path\to\abcd.mdb'  # Replace with the actual path to your Access database file
+
+# Connect to the Access database using mdbtools
+try:
+    conn = mdb.connect(db_path)
+    cursor = conn.cursor()
+
+    # Execute your query and fetch the data
+    query = "SELECT trxName, TrxValue, trxStatus FROM Table1;"
+    cursor.execute(query)
+    data = cursor.fetchall()
+
+    # Process the fetched data and perform calculations
+    transactions = defaultdict(list)
+    fail_counts = defaultdict(int)
+
+    for row in data:
+        trx_name, trx_value, trx_status = row[0], row[1], row[2]
+
+        if trx_status == 'PASS':
+            transactions[trx_name].append(int(trx_value))
+        elif trx_status == 'FAIL':
+            fail_counts[trx_name] += 1
+
+    # Calculate and write results to Excel
+    wb = Workbook()
+    ws = wb.active
+
+    # Write headers
+    headers = ["TrxName", "Min", "Max", "Avg", "SelectedResponseTime", "PASS", "FAIL"]
+    ws.append(headers)
+
+    for trx_name, rt_values in transactions.items():
+        if trx_name in fail_counts:
+            fail_count = fail_counts[trx_name]
+        else:
+            fail_count = 0
+
+        if rt_values:
+            min_rt = min(rt_values)
+            max_rt = max(rt_values)
+            avg_rt = sum(rt_values) / len(rt_values)
+            selected_rt_index = int((len(rt_values) - 1) * 0.9)
+            selected_rt = sorted(rt_values)[selected_rt_index]
+        else:
+            min_rt = max_rt = avg_rt = selected_rt = 0
+
+        pass_count = len(rt_values)
+
+        ws.append([trx_name, min_rt, max_rt, avg_rt, selected_rt, pass_count, fail_count])
+
+    # Save the Excel file
+    wb.save('output.xlsx')
+
+    # Close the database connection
+    conn.close()
+
+except Exception as e:
+    print(f"Error: {e}")
 
 ===========================
 
