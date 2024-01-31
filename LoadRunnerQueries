@@ -1,0 +1,308 @@
+SELECT Event_map.[Event Name], Count(*) AS Samples, Min(Event_meter.Value) AS Minimum, Avg(Event_meter.Value) AS Average, Max(Event_meter.Value) AS Maximum, StDev(Event_meter.Value) AS [Standard Deviation], Sum(Event_meter.Value) AS TotalTime FROM TransactionEndStatus INNER JOIN (Event_map INNER JOIN Event_meter ON Event_map.[Event ID] = Event_meter.[Event ID]) ON TransactionEndStatus.Status1 = Event_meter.Status1 WHERE (((TransactionEndStatus.[Transaction End Status])="Pass")) GROUP BY Event_map.[Event Name] ORDER BY Sum(Event_meter.Value) DESC;
+
+
+
+===========================
+
+def find_90th_value(numbers):
+    # Sort the list in ascending order
+    numbers.sort()
+
+    # Calculate the index for the 90th value
+    index_90th = int(0.9 * len(numbers)) - 1
+
+    # Retrieve and return the 90th value
+    value_90th = numbers[index_90th]
+    return value_90th
+
+# Example usage:
+try:
+    # Input comma-separated numbers from the user
+    input_numbers = input("Enter a list of numbers separated by commas: ")
+
+    # Convert input string to a list of integers
+    numbers = [int(num) for num in input_numbers.split(',')]
+
+    # Find and print the 90th value
+    result = find_90th_value(numbers)
+    print(f"The 90th value is: {result}")
+
+except ValueError:
+    print("Invalid input. Please enter a list of numbers separated by commas.")
+
+
+
+import csv
+from collections import defaultdict
+
+# Sample data
+data = """trxName,RT
+A,1
+A,3
+A,5
+A,2
+A,7
+B,9
+B,2
+B,1
+B,3
+B,5
+B,2
+B,7
+B,12"""
+
+# Convert the sample data to a list of dictionaries
+reader = csv.DictReader(data.splitlines())
+transactions = list(reader)
+
+# Group data by transaction name
+grouped_data = defaultdict(list)
+for entry in transactions:
+    grouped_data[entry['trxName']].append(int(entry['RT']))
+
+# Calculate and print the results
+print("TrxName,Min,Max,Count,Avg,90thResponseTime")
+
+for trx_name, values in grouped_data.items():
+    values.sort()
+    count = len(values)
+    minimum = min(values)
+    maximum = max(values)
+    average = sum(values) / count
+    ninetieth_percentile_index = int(0.9 * count) - 1
+    ninetieth_response_time = values[ninetieth_percentile_index]
+
+    print(f"{trx_name},{minimum},{maximum},{count},{average:.2f},{ninetieth_response_time}")
+
+==========================
+
+pip install pyodbc openpyxl
+import pyodbc
+from openpyxl import Workbook
+
+# Connect to the Access database
+connection_string = r'DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};DBQ=path_to_your_access_db.accdb;'
+conn = pyodbc.connect(connection_string)
+cursor = conn.cursor()
+
+# Sample queries
+queries = [
+    "SELECT * FROM Table1",
+    "SELECT * FROM Table2",
+    "SELECT * FROM Table3"
+]
+
+# Create an Excel workbook and sheets
+wb = Workbook()
+sheets = [wb.create_sheet(title=f"Sheet_{i + 1}") for i in range(len(queries))]
+
+# Execute queries and write results to Excel sheets
+for i, query in enumerate(queries):
+    sheet = sheets[i]
+
+    # Execute the query
+    cursor.execute(query)
+
+    # Write column names to the Excel sheet
+    columns = [column[0] for column in cursor.description]
+    sheet.append(columns)
+
+    # Write data to the Excel sheet
+    for row in cursor.fetchall():
+        sheet.append(row)
+
+# Save the Excel workbook
+wb.save('output.xlsx')
+
+# Close the database connection
+cursor.close()
+conn.close()
+
+
+=========================
+
+import pyodbc
+from openpyxl import Workbook
+
+# Connection string for Access database
+conn_str = r'DRIVER={Microsoft Access Driver (*.mdb)};DBQ=C:\path\to\your\database.mdb;'
+
+# Function to execute a query and return results
+def execute_query(connection, query):
+    cursor = connection.cursor()
+    cursor.execute(query)
+    columns = [column[0] for column in cursor.description]
+    rows = cursor.fetchall()
+    return columns, rows
+
+# Function to export data to Excel sheet
+def export_to_excel(workbook, sheet_name, columns, rows):
+    sheet = workbook.create_sheet(title=sheet_name)
+    
+    # Write column headers
+    for col_num, col_name in enumerate(columns, 1):
+        sheet.cell(row=1, column=col_num, value=col_name)
+
+    # Write data rows
+    for row_num, row_data in enumerate(rows, 2):
+        for col_num, cell_value in enumerate(row_data, 1):
+            sheet.cell(row=row_num, column=col_num, value=cell_value)
+
+# Main function
+def main():
+    # Connect to the Access database
+    connection = pyodbc.connect(conn_str)
+
+    # Example queries
+    query1 = 'SELECT * FROM Table1'
+    query2 = 'SELECT * FROM Table2'
+
+    # Create an Excel workbook
+    workbook = Workbook()
+
+    # Execute queries and export results to Excel
+    for query_num, query in enumerate([query1, query2], 1):
+        sheet_name = f'Sheet{query_num}'
+        columns, rows = execute_query(connection, query)
+        export_to_excel(workbook, sheet_name, columns, rows)
+
+    # Save the Excel workbook
+    workbook.save('output.xlsx')
+
+    # Close the database connection
+    connection.close()
+
+if __name__ == "__main__":
+    main()
+
+
+=======================
+
+import re
+
+# Sample HTML content
+html_content = """
+<html>
+<head>
+    <title>Sample HTML</title>
+</head>
+<body>
+    <div class="content">
+        <h1>Page Title</h1>
+        <p class="paragraph">This is a sample paragraph.</p>
+        <table>
+            <tr>
+                <th>Header 1</th>
+                <th>Header 2</th>
+                <th>Header 3</th>
+            </tr>
+            <tr>
+                <td>Row 1 Col 1</td>
+                <td>Row 1 Col 2</td>
+                <td>Row 1 Col 3</td>
+            </tr>
+            <tr>
+                <td>Row 2 Col 1</td>
+                <td>Row 2 Col 2</td>
+                <td>Row 2 Col 3</td>
+            </tr>
+        </table>
+    </div>
+</body>
+</html>
+"""
+
+# Extract data using regular expressions
+page_title = re.search(r'<title>(.*?)</title>', html_content).group(1)
+paragraph_text = re.search(r'<p class="paragraph">(.*?)</p>', html_content).group(1)
+
+table_match = re.search(r'<table>.*?</table>', html_content, re.DOTALL)
+table_content = table_match.group() if table_match else ''
+
+# Extract data from the table using regular expressions
+table_headers = re.findall(r'<th>(.*?)</th>', table_content)
+table_rows = re.findall(r'<tr>.*?<td>(.*?)</td>.*?<td>(.*?)</td>.*?<td>(.*?)</td>.*?</tr>', table_content, re.DOTALL)
+
+# Print the extracted data
+print("Page Title:", page_title)
+print("Paragraph Text:", paragraph_text)
+
+print("\nTable Headers:", table_headers)
+print("Table Rows:")
+for row in table_rows:
+    print(row)
+
+
+===================================
+
+import re
+from openpyxl import Workbook
+
+# Sample HTML content
+html_content = """
+<html>
+<head>
+    <title>Sample HTML</title>
+</head>
+<body>
+    <div class="content">
+        <h1>Page Title</h1>
+        <p class="paragraph">This is a sample paragraph.</p>
+        <table>
+            <tr>
+                <th>Header 1</th>
+                <th>Header 2</th>
+                <th>Header 3</th>
+            </tr>
+            <tr>
+                <td>Row 1 Col 1</td>
+                <td>Row 1 Col 2</td>
+                <td>Row 1 Col 3</td>
+            </tr>
+            <tr>
+                <td>Row 2 Col 1</td>
+                <td>Row 2 Col 2</td>
+                <td>Row 2 Col 3</td>
+            </tr>
+        </table>
+    </div>
+</body>
+</html>
+"""
+
+# Create Excel workbook
+workbook = Workbook()
+sheet = workbook.active
+
+# Extract data using regular expressions
+page_title = re.search(r'<title>(.*?)</title>', html_content).group(1)
+paragraph_text = re.search(r'<p class="paragraph">(.*?)</p>', html_content).group(1)
+
+table_match = re.search(r'<table>.*?</table>', html_content, re.DOTALL)
+table_content = table_match.group() if table_match else ''
+
+# Extract data from the table using regular expressions
+table_headers = re.findall(r'<th>(.*?)</th>', table_content)
+table_rows = re.findall(r'<tr>.*?<td>(.*?)</td>.*?<td>(.*?)</td>.*?<td>(.*?)</td>.*?</tr>', table_content, re.DOTALL)
+
+# Write data to Excel sheet
+sheet['A1'] = 'Page Title'
+sheet['B1'] = 'Paragraph Text'
+sheet['A2'] = page_title
+sheet['B2'] = paragraph_text
+
+# Write table headers
+for col_num, header in enumerate(table_headers, start=1):
+    sheet.cell(row=4, column=col_num, value=header)
+
+# Write table rows
+for row_num, row_data in enumerate(table_rows, start=5):
+    for col_num, cell_value in enumerate(row_data, start=1):
+        sheet.cell(row=row_num, column=col_num, value=cell_value)
+
+# Save the Excel workbook
+workbook.save('output.xlsx')
+
+
+==================
+
