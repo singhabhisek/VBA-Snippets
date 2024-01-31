@@ -723,3 +723,48 @@ def execute_access_queries(mdb_file_location, queries, excel_file):
 # Example usage:
 access_queries = ['SELECT * FROM Table1;', 'SELECT * FROM Table2;']
 execute_access_queries(mdb_file_location, access_queries, 'access_query_results.xlsx')
+
+
+
+=====================
+
+
+Sub RunPythonScript()
+    Dim objShell As Object
+    Dim pythonPath As String
+    Dim scriptPath As String
+    Dim mdbFileLocation As String
+    Dim startTime As String
+    Dim endTime As String
+    Dim output As String
+    
+    ' Set your Python executable path
+    pythonPath = "C:\Path\To\Your\Python\python.exe"
+    
+    ' Set your Python script path
+    scriptPath = "C:\Path\To\Your\Python\script.py"
+    
+    ' Get parameters from Excel cells
+    mdbFileLocation = Worksheets("Sheet1").Range("B2").Value
+    startTime = Worksheets("Sheet1").Range("B3").Value
+    endTime = Worksheets("Sheet1").Range("B4").Value
+    
+    ' Check if parameters are provided
+    If Len(mdbFileLocation) = 0 Or Len(startTime) = 0 Or Len(endTime) = 0 Then
+        MsgBox "Please enter all parameters.", vbExclamation
+        Exit Sub
+    End If
+    
+    ' Construct the command to run the Python script
+    command = pythonPath & " " & scriptPath & " " & startTime & " " & endTime & " " & mdbFileLocation
+    
+    ' Create a Shell object
+    Set objShell = VBA.CreateObject("WScript.Shell")
+    
+    ' Run the Python script and capture the output
+    output = objShell.Exec(command).StdOut.ReadAll
+    
+    ' Write the output to Sheet1 in Excel
+    Worksheets("Sheet1").Cells.Clear
+    Worksheets("Sheet1").Range("A1").Value = output
+End Sub
