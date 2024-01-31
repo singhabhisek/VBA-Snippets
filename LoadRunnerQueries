@@ -573,3 +573,153 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+===================================================
+
+
+Sub RunPythonScript()
+    Dim objShell As Object
+    Set objShell = VBA.CreateObject("WScript.Shell")
+
+    ' Set the path to your Python executable and script
+    pythonScript = "C:\path\to\your\python.exe C:\path\to\your\script.py"
+
+    ' Set your parameters
+    startTime = "2024-01-01"
+    endTime = "2024-02-01"
+    mdbFileLocation = "C:\path\to\your\abcd.mdb"
+
+    ' Concatenate parameters to the script
+    parameters = " " & startTime & " " & endTime & " " & mdbFileLocation
+
+    ' Run the Python script with parameters
+    objShell.Run pythonScript & parameters, 1, True
+
+    ' Optionally, add code here to refresh or manipulate Excel data based on script output
+End Sub
+
+
+
+=======================================
+
+import os
+import zipfile
+import requests
+import openpyxl
+import datetime
+import subprocess
+import pywin32com.client as win32
+
+def read_config_from_excel(file_path):
+    wb = openpyxl.load_workbook(file_path)
+    sheet = wb.active
+
+    # Read configuration parameters from cells A2, D2, C2, F2
+    start_time = sheet['A2'].value
+    end_time = sheet['D2'].value
+    mdb_file_location = sheet['C2'].value
+    destination_folder = sheet['F2'].value
+
+    return start_time, end_time, mdb_file_location, destination_folder
+
+def download_and_unzip_from_api(api_url, destination_folder):
+    # Download zip folder from API
+    response = requests.get(api_url)
+
+    # Save zip file
+    zip_file_path = os.path.join(destination_folder, 'downloaded_data.zip')
+    with open(zip_file_path, 'wb') as zip_file:
+        zip_file.write(response.content)
+
+    # Unzip the folder
+    with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
+        zip_ref.extractall(destination_folder)
+
+    return destination_folder
+
+def execute_access_queries(mdb_file_location, queries):
+    # Your code to execute Access queries and write to Excel sheets
+    pass
+
+def execute_dynatrace_api_queries(api_urls, excel_file, sheet_names):
+    # Your code to execute Dynatrace API queries and write to Excel sheets
+    pass
+
+def run_excel_macro(excel_file, macro_name):
+    xl = win32.Dispatch("Excel.Application")
+    xl.Visible = False
+
+    wb = xl.Workbooks.Open(excel_file)
+    xl.Application.Run(f"{excel_file}!{macro_name}")
+
+    wb.Save()
+    xl.Quit()
+
+def main():
+    # Read configuration from Excel
+    excel_file_path = 'config.xlsx'
+    start_time, end_time, mdb_file_location, destination_folder = read_config_from_excel(excel_file_path)
+
+    # Download and unzip data from API
+    api_url = 'https://example.com/api/data.zip'
+    download_and_unzip_from_api(api_url, destination_folder)
+
+    # Execute Access queries
+    access_queries = ['SELECT * FROM Table1;', 'SELECT * FROM Table2;']
+    execute_access_queries(mdb_file_location, access_queries)
+
+    # Execute Dynatrace API queries
+    dynatrace_api_urls = ['https://dynatrace-api.com/query1', 'https://dynatrace-api.com/query2']
+    dynatrace_sheet_names = ['DynatraceSheet1', 'DynatraceSheet2']
+    execute_dynatrace_api_queries(dynatrace_api_urls, excel_file_path, dynatrace_sheet_names)
+
+    # Run Excel macro for consolidation
+    macro_name = 'ConsolidateData'
+    run_excel_macro(excel_file_path, macro_name)
+
+if __name__ == "__main__":
+    main()
+
+
+import pyodbc
+from openpyxl import Workbook
+
+def execute_access_queries(mdb_file_location, queries, excel_file):
+    connection_string = f'DRIVER={{Microsoft Access Driver (*.mdb, *.accdb)}};DBQ={mdb_file_location};'
+    
+    try:
+        connection = pyodbc.connect(connection_string)
+        cursor = connection.cursor()
+
+        # Create a new workbook to write query results
+        wb = Workbook()
+
+        for i, query in enumerate(queries):
+            sheet_name = f'QueryResult_{i + 1}'
+            ws = wb.create_sheet(title=sheet_name)
+
+            # Execute the query
+            cursor.execute(query)
+            rows = cursor.fetchall()
+
+            # Write query result to the sheet
+            header_row = [column[0] for column in cursor.description]
+            ws.append(header_row)
+
+            for row in rows:
+                ws.append(row)
+
+        # Save the workbook to the specified Excel file
+        wb.save(excel_file)
+
+    except pyodbc.Error as e:
+        print(f"Error: {e}")
+
+    finally:
+        if connection:
+            connection.close()
+
+# Example usage:
+access_queries = ['SELECT * FROM Table1;', 'SELECT * FROM Table2;']
+execute_access_queries(mdb_file_location, access_queries, 'access_query_results.xlsx')
