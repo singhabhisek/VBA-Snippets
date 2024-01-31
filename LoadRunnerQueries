@@ -306,3 +306,66 @@ workbook.save('output.xlsx')
 
 ==================
 
+import openpyxl
+import pyodbc
+
+def execute_query(connection, query, granularity):
+    cursor = connection.cursor()
+    cursor.execute(query, {"Granularity": granularity})
+    result = cursor.fetchall()
+    cursor.close()
+    return result
+
+def write_to_excel(result, sheet_name, workbook):
+    sheet = workbook.create_sheet(title=sheet_name)
+
+    # Write header
+    header = [column[0] for column in result.description]
+    sheet.append(header)
+
+    # Write data
+    for row in result:
+        sheet.append(row)
+
+def main():
+    # Access database connection string
+    conn_str = r"DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};DBQ=C:\path\to\your\database.accdb;"
+    connection = pyodbc.connect(conn_str)
+
+    # Customizable granularity
+    granularity = 10  # Replace with your desired granularity
+
+    # Query template
+    query_template = """
+    SELECT 
+        Sum([inout flag]) AS [SumAll],
+        ( ( ( Floor(( [end time] - 0 ) / ?) ) * ? ) + 0 ) AS [Granu],
+        [vuser status name]
+    FROM   
+        (vuserevent_meter
+            INNER JOIN vuserstatus
+                ON ( vuserevent_meter.[vuser status id] = vuserstatus.[vuser status id] ))
+    WHERE  
+        (( [vuser status name] = 'Run' ))
+    GROUP  BY 
+        ( ( ( Floor(( [end time] - 0 ) / ?) ) * ? ) + 0 ),
+        [vuser status name]
+    ORDER  BY 
+        [vuser status name],
+        ( ( ( Floor(( [end time] - 0 ) / ?) ) * ? ) + 0 );
+    """
+
+    # Execute query and write to Excel
+    workbook = openpyxl.Workbook()
+
+    result = execute_query(connection, query_template, granularity)
+    write_to_excel(result, "Sheet1", workbook)
+
+    # Save the Excel file
+    workbook.save("output.xlsx")
+
+    # Close the database connection
+    connection.close()
+
+if __name__ == "__main__":
+    main()
