@@ -768,3 +768,331 @@ Sub RunPythonScript()
     Worksheets("Sheet1").Cells.Clear
     Worksheets("Sheet1").Range("A1").Value = output
 End Sub
+
+
+========
+
+
+Sub ProcessTransactions()
+    Dim lastRow As Long
+    Dim trxName As String
+    Dim rtValues() As Double
+    Dim passCount As Long
+    Dim failCount As Long
+    Dim minRT As Double
+    Dim maxRT As Double
+    Dim avgRT As Double
+    Dim perc90RT As Double
+    Dim i As Long
+
+    ' Assuming your data starts from A2 and has headers in the first row
+    lastRow = Cells(Rows.Count, 1).End(xlUp).Row
+
+    ' Initialize summary table headers
+    Cells(1, 7).Value = "TrxName"
+    Cells(1, 8).Value = "Min"
+    Cells(1, 9).Value = "Max"
+    Cells(1, 10).Value = "Avg"
+    Cells(1, 11).Value = "90thResponseTime"
+    Cells(1, 12).Value = "PASS"
+    Cells(1, 13).Value = "FAIL"
+
+    ' Initialize variables
+    trxName = Cells(2, 1).Value
+    passCount = 0
+    failCount = 0
+
+    ' Execute your MDB query here and populate the dataset
+    ' For example, replace "YourQueryName" with your actual query name
+    ' Dim rs As Object
+    ' Set rs = CurrentDb.OpenRecordset("YourQueryName")
+
+    ' Loop through the dataset
+    For i = 2 To lastRow
+        ' Assuming "rs" is your recordset
+        ' If Not rs.EOF Then
+        '     trxName = rs.Fields("trxName").Value
+        '     If trxName <> rs.Fields("trxName").Value Then
+        '         ' Process summary for the previous transaction
+        '         ProcessTransactionSummary trxName, rtValues, passCount, failCount
+
+        '         ' Reset variables for the new transaction
+        '         trxName = rs.Fields("trxName").Value
+        '         passCount = 0
+        '         failCount = 0
+        '         ReDim rtValues(1 To 1)
+        '     End If
+
+        '     If rs.Fields("Status").Value = "PASS" Then
+        '         passCount = passCount + 1
+        '         ReDim Preserve rtValues(1 To passCount)
+        '         rtValues(passCount) = rs.Fields("RT").Value
+        '     ElseIf rs.Fields("Status").Value = "FAIL" Then
+        '         failCount = failCount + 1
+        '     End If
+
+        '     rs.MoveNext
+        ' End If
+    Next i
+
+    ' Close the recordset
+    ' rs.Close
+
+    ' Process summary for the last transaction
+    ProcessTransactionSummary trxName, rtValues, passCount, failCount
+End Sub
+
+Sub ProcessTransactionSummary(trxName As String, rtValues() As Double, passCount As Long, failCount As Long)
+    Dim minRT As Double
+    Dim maxRT As Double
+    Dim avgRT As Double
+    Dim perc90RT As Double
+    Dim i As Long
+
+    If passCount > 0 Then
+        ' Sort rtValues in ascending order
+        SortArray rtValues
+
+        ' Calculate summary statistics
+        minRT = rtValues(1)
+        maxRT = rtValues(passCount)
+        avgRT = WorksheetFunction.Average(rtValues)
+        perc90RT = rtValues(Application.RoundUp(0.9 * passCount, 0))
+
+        ' Output summary to the next available row
+        Dim nextRow As Long
+        nextRow = Cells(Rows.Count, 7).End(xlUp).Row + 1
+        Cells(nextRow, 7).Value = trxName
+        Cells(nextRow, 8).Value = minRT
+        Cells(nextRow, 9).Value = maxRT
+        Cells(nextRow, 10).Value = avgRT
+        Cells(nextRow, 11).Value = perc90RT
+        Cells(nextRow, 12).Value = passCount
+        Cells(nextRow, 13).Value = failCount
+    End If
+End Sub
+
+Sub SortArray(arr() As Double)
+    Dim i As Long, j As Long
+    Dim temp As Double
+
+    For i = LBound(arr) To UBound(arr) - 1
+        For j = i + 1 To UBound(arr)
+            If arr(i) > arr(j) Then
+                temp = arr(i)
+                arr(i) = arr(j)
+                arr(j) = temp
+            End If
+        Next j
+    Next i
+End Sub
+
+
+=====
+
+Sub ProcessTransactions()
+    Dim lastRow As Long
+    Dim trxName As String
+    Dim rtValues() As Double
+    Dim passCount As Long
+    Dim failCount As Long
+    Dim minRT As Double
+    Dim maxRT As Double
+    Dim avgRT As Double
+    Dim perc90RT As Double
+    Dim i As Long
+
+    ' Assuming your data starts from A2 and has headers in the first row
+    lastRow = Cells(Rows.Count, 1).End(xlUp).Row
+
+    ' Initialize summary table headers
+    Cells(1, 7).Value = "TrxName"
+    Cells(1, 8).Value = "Min"
+    Cells(1, 9).Value = "Max"
+    Cells(1, 10).Value = "Avg"
+    Cells(1, 11).Value = "90thResponseTime"
+    Cells(1, 12).Value = "PASS"
+    Cells(1, 13).Value = "FAIL"
+
+    ' Initialize variables
+    trxName = Cells(2, 1).Value
+    passCount = 0
+    failCount = 0
+
+    For i = 2 To lastRow
+        If trxName <> Cells(i, 1).Value Then
+            ' Process summary for the previous transaction
+            ProcessTransactionSummary trxName, rtValues, passCount, failCount
+
+            ' Reset variables for the new transaction
+            trxName = Cells(i, 1).Value
+            passCount = 0
+            failCount = 0
+            ReDim rtValues(1 To 1)
+        End If
+
+        If Cells(i, 3).Value = "PASS" Then
+            passCount = passCount + 1
+            ReDim Preserve rtValues(1 To passCount)
+            rtValues(passCount) = Cells(i, 2).Value
+        ElseIf Cells(i, 3).Value = "FAIL" Then
+            failCount = failCount + 1
+        End If
+    Next i
+
+    ' Process summary for the last transaction
+    ProcessTransactionSummary trxName, rtValues, passCount, failCount
+End Sub
+
+Sub ProcessTransactionSummary(trxName As String, rtValues() As Double, passCount As Long, failCount As Long)
+    Dim minRT As Double
+    Dim maxRT As Double
+    Dim avgRT As Double
+    Dim perc90RT As Double
+    Dim i As Long
+
+    If passCount > 0 Then
+        ' Sort rtValues in ascending order
+        SortArray rtValues
+
+        ' Calculate summary statistics
+        minRT = rtValues(1)
+        maxRT = rtValues(passCount)
+        avgRT = WorksheetFunction.Average(rtValues)
+        perc90RT = rtValues(Application.RoundUp(0.9 * passCount, 0))
+
+        ' Output summary to the next available row
+        Dim nextRow As Long
+        nextRow = Cells(Rows.Count, 7).End(xlUp).Row + 1
+        Cells(nextRow, 7).Value = trxName
+        Cells(nextRow, 8).Value = minRT
+        Cells(nextRow, 9).Value = maxRT
+        Cells(nextRow, 10).Value = avgRT
+        Cells(nextRow, 11).Value = perc90RT
+        Cells(nextRow, 12).Value = passCount
+        Cells(nextRow, 13).Value = failCount
+    End If
+End Sub
+
+Sub SortArray(arr() As Double)
+    Dim i As Long, j As Long
+    Dim temp As Double
+
+    For i = LBound(arr) To UBound(arr) - 1
+        For j = i + 1 To UBound(arr)
+            If arr(i) > arr(j) Then
+                temp = arr(i)
+                arr(i) = arr(j)
+                arr(j) = temp
+            End If
+        Next j
+    Next i
+End Sub
+
+
+====
+Sub ProcessTransactionsWithData(trxData As Variant)
+    Dim lastRow As Long
+    Dim trxName As String
+    Dim rtValues() As Double
+    Dim passCount As Long
+    Dim failCount As Long
+    Dim minRT As Double
+    Dim maxRT As Double
+    Dim avgRT As Double
+    Dim perc90RT As Double
+    Dim i As Long
+
+    ' Initialize summary table headers
+    Cells(1, 7).Value = "TrxName"
+    Cells(1, 8).Value = "Min"
+    Cells(1, 9).Value = "Max"
+    Cells(1, 10).Value = "Avg"
+    Cells(1, 11).Value = "90thResponseTime"
+    Cells(1, 12).Value = "PASS"
+    Cells(1, 13).Value = "FAIL"
+
+    ' Initialize variables
+    trxName = trxData(2, 1)
+    passCount = 0
+    failCount = 0
+
+    For i = 2 To UBound(trxData, 1)
+        If trxName <> trxData(i, 1) Then
+            ' Process summary for the previous transaction
+            ProcessTransactionSummary trxName, rtValues, passCount, failCount
+
+            ' Reset variables for the new transaction
+            trxName = trxData(i, 1)
+            passCount = 0
+            failCount = 0
+            ReDim rtValues(1 To 1)
+        End If
+
+        If trxData(i, 3) = "PASS" Then
+            passCount = passCount + 1
+            ReDim Preserve rtValues(1 To passCount)
+            rtValues(passCount) = trxData(i, 2)
+        ElseIf trxData(i, 3) = "FAIL" Then
+            failCount = failCount + 1
+        End If
+    Next i
+
+    ' Process summary for the last transaction
+    ProcessTransactionSummary trxName, rtValues, passCount, failCount
+End Sub
+
+Sub ProcessTransactionSummary(trxName As String, rtValues() As Double, passCount As Long, failCount As Long)
+    Dim minRT As Double
+    Dim maxRT As Double
+    Dim avgRT As Double
+    Dim perc90RT As Double
+    Dim i As Long
+
+    If passCount > 0 Then
+        ' Sort rtValues in ascending order
+        SortArray rtValues
+
+        ' Calculate summary statistics
+        minRT = rtValues(1)
+        maxRT = rtValues(passCount)
+        avgRT = WorksheetFunction.Average(rtValues)
+        perc90RT = rtValues(Application.RoundUp(0.9 * passCount, 0))
+
+        ' Output summary to the next available row
+        Dim nextRow As Long
+        nextRow = Cells(Rows.Count, 7).End(xlUp).Row + 1
+        Cells(nextRow, 7).Value = trxName
+        Cells(nextRow, 8).Value = minRT
+        Cells(nextRow, 9).Value = maxRT
+        Cells(nextRow, 10).Value = avgRT
+        Cells(nextRow, 11).Value = perc90RT
+        Cells(nextRow, 12).Value = passCount
+        Cells(nextRow, 13).Value = failCount
+    End If
+End Sub
+
+Sub SortArray(arr() As Double)
+    Dim i As Long, j As Long
+    Dim temp As Double
+
+    For i = LBound(arr) To UBound(arr) - 1
+        For j = i + 1 To UBound(arr)
+            If arr(i) > arr(j) Then
+                temp = arr(i)
+                arr(i) = arr(j)
+                arr(j) = temp
+            End If
+        Next j
+    Next i
+End Sub
+
+
+Sub YourMainMacro()
+    ' Execute the MDB query and get the data into a 2D array
+    Dim mdbData As Variant
+    ' ... Code to execute query and load data into mdbData ...
+
+    ' Pass the dataset to the processing function
+    ProcessTransactionsWithData mdbData
+End Sub
