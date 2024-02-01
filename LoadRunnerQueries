@@ -27,11 +27,30 @@ Sub ExternalSort(trxData As Variant)
     MergeSortedChunks trxData, chunkSize, numChunks
 End Sub
 
+Sub BubbleSort(trxData As Variant, startIdx As Long, endIdx As Long)
+    Dim i As Long, j As Long
+    Dim temp As Variant
+
+    For i = startIdx To endIdx - 1
+        For j = i + 1 To endIdx
+            If trxData(1, i) > trxData(1, j) Then
+                ' Swap values in the first column
+                For k = LBound(trxData, 1) To UBound(trxData, 1)
+                    temp = trxData(k, i)
+                    trxData(k, i) = trxData(k, j)
+                    trxData(k, j) = temp
+                Next k
+            End If
+        Next j
+    Next i
+End Sub
+
 Sub SortArrayInMemory(ByRef trxData As Variant, ByVal startIdx As Long, ByVal endIdx As Long)
     ' Sort a chunk of the array in memory (adjust sorting algorithm if needed)
 
     ' Assuming TrxValue is in the first column (index 1)
-    Application.WorksheetFunction.Sort trxData, Key1:=trnData(1, startIdx), Order1:=xlAscending, Header:=xlNo
+    SortArrayInMemory trxData, startIdx, endIdx
+
 End Sub
 
 Sub MergeSortedChunks(ByRef trxData As Variant, ByVal chunkSize As Long, ByVal numChunks As Long)
