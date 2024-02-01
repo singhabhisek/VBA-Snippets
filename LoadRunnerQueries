@@ -1,3 +1,124 @@
+Sub ExternalSort(trxData As Variant)
+    ' Assume trxData is a 2D array with TrxValue in the first column (index 1)
+
+    Dim chunkSize As Long
+    Dim numChunks As Long
+    Dim i As Long
+
+    ' Set the chunk size (adjust as needed)
+    chunkSize = 10000  ' Choose an appropriate size
+
+    ' Calculate the number of chunks
+    numChunks = WorksheetFunction.Ceiling(UBound(trxData, 2) / chunkSize, 1)
+
+    ' Sort each chunk in memory
+    For i = 1 To numChunks
+        Dim startIdx As Long
+        Dim endIdx As Long
+
+        startIdx = (i - 1) * chunkSize + 1
+        endIdx = WorksheetFunction.Min(i * chunkSize, UBound(trxData, 2))
+
+        ' Sort the chunk in memory
+        SortArrayInMemory trxData, startIdx, endIdx
+    Next i
+
+    ' Merge the sorted chunks
+    MergeSortedChunks trxData, chunkSize, numChunks
+End Sub
+
+Sub SortArrayInMemory(ByRef trxData As Variant, ByVal startIdx As Long, ByVal endIdx As Long)
+    ' Sort a chunk of the array in memory (adjust sorting algorithm if needed)
+
+    ' Assuming TrxValue is in the first column (index 1)
+    Application.WorksheetFunction.Sort trxData, Key1:=trnData(1, startIdx), Order1:=xlAscending, Header:=xlNo
+End Sub
+
+Sub MergeSortedChunks(ByRef trxData As Variant, ByVal chunkSize As Long, ByVal numChunks As Long)
+    ' Merge sorted chunks in memory (adjust merging algorithm if needed)
+
+    Dim mergedData As Variant
+    Dim i As Long
+
+    ' Initialize mergedData
+    ReDim mergedData(1 To UBound(trxData, 1), 1 To UBound(trxData, 2))
+
+    ' Merge sorted chunks
+    For i = 1 To numChunks
+        Dim startIdx As Long
+        Dim endIdx As Long
+
+        startIdx = (i - 1) * chunkSize + 1
+        endIdx = WorksheetFunction.Min(i * chunkSize, UBound(trxData, 2))
+
+        ' Merge the current chunk into mergedData
+        MergeArrays trxData, mergedData, startIdx, endIdx
+    Next i
+
+    ' Replace trxData with the mergedData
+    trxData = mergedData
+End Sub
+
+Sub MergeArrays(ByRef sourceArray As Variant, ByRef destArray As Variant, ByVal startIdx As Long, ByVal endIdx As Long)
+    ' Merge a portion of the sourceArray into the destArray
+
+    Dim i As Long
+    Dim j As Long
+
+    For i = startIdx To endIdx
+        For j = 1 To UBound(sourceArray, 1)
+            destArray(j, i) = sourceArray(j, i)
+        Next j
+    Next i
+End Sub
+
+
+===========
+
+Sub QuickSort(arr() As Variant, low As Long, high As Long)
+    Dim i As Long, j As Long
+    Dim pivot As Variant
+    Dim temp As Variant
+
+    If low < high Then
+        pivot = arr(low, 1)
+        i = low
+        j = high
+
+        Do
+            Do While arr(i, 1) < pivot
+                i = i + 1
+            Loop
+
+            Do While arr(j, 1) > pivot
+                j = j - 1
+            Loop
+
+            If i <= j Then
+                ' Swap elements
+                For k = LBound(arr, 2) To UBound(arr, 2)
+                    temp = arr(i, k)
+                    arr(i, k) = arr(j, k)
+                    arr(j, k) = temp
+                Next k
+
+                i = i + 1
+                j = j - 1
+            End If
+        Loop While i <= j
+
+        ' Recursively sort the two partitions
+        QuickSort arr, low, j
+        QuickSort arr, i, high
+    End If
+End Sub
+
+Sub SortArray(arr() As Variant)
+    QuickSort arr, LBound(arr, 1), UBound(arr, 1)
+End Sub
+
+
+=========
 SELECT Event_map.[Event Name], Count(*) AS Samples, Min(Event_meter.Value) AS Minimum, Avg(Event_meter.Value) AS Average, Max(Event_meter.Value) AS Maximum, StDev(Event_meter.Value) AS [Standard Deviation], Sum(Event_meter.Value) AS TotalTime FROM TransactionEndStatus INNER JOIN (Event_map INNER JOIN Event_meter ON Event_map.[Event ID] = Event_meter.[Event ID]) ON TransactionEndStatus.Status1 = Event_meter.Status1 WHERE (((TransactionEndStatus.[Transaction End Status])="Pass")) GROUP BY Event_map.[Event Name] ORDER BY Sum(Event_meter.Value) DESC;
 
 
