@@ -1,3 +1,5 @@
+ThisWorkbook.Sheets("Sheet2").Range("A7").Resize(Workbooks("AnotherWorkbook.xlsx").Sheets("Sheet1").Cells(Rows.Count, "A").End(xlUp).Row - 6, Columns.Count).Value = Workbooks("AnotherWorkbook.xlsx").Sheets("Sheet1").Range("A7").Resize(Workbooks("AnotherWorkbook.xlsx").Sheets("Sheet1").Cells(Rows.Count, "A").End(xlUp).Row - 6, Columns.Count).Value
+
 Sub ExternalSort(trxData As Variant)
     ' Assume trxData is a 2D array with TrxValue in the first column (index 1)
 
