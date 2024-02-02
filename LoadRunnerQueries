@@ -1,3 +1,255 @@
+main.py:
+
+
+import sys
+from performance_center import download_and_extract_results
+from access_queries import execute_queries
+from dynatrace_apis import execute_dynatrace_apis
+from excel_macro import consolidate_result
+
+def main(start_time, end_time, mdb_file_location):
+    # Step 1: Download and extract results from Performance Center
+    download_and_extract_results(start_time, end_time)
+
+    # Step 2: Execute Access queries
+    execute_queries(mdb_file_location)
+
+    # Step 3: Execute Dynatrace APIs
+    execute_dynatrace_apis()
+
+    # Step 4: Call Excel macro
+    consolidate_result()
+
+if __name__ == "__main__":
+    if len(sys.argv) != 4:
+        print("Usage: main.py <start_time> <end_time> <mdb_file_location>")
+        sys.exit(1)
+
+    start_time, end_time, mdb_file_location = sys.argv[1], sys.argv[2], sys.argv[3]
+    main(start_time, end_time, mdb_file_location)
+
+
+performance_center.py:
+
+
+import os
+import requests
+import zipfile
+
+def download_and_extract_results(start_time, end_time):
+    # Perform Performance Center API calls to download and extract results
+    # Use start_time and end_time as needed
+    # ...
+
+    # Unzip the downloaded folder
+    with zipfile.ZipFile("downloaded_results.zip", "r") as zip_ref:
+        zip_ref.extractall("unzipped_results")
+
+
+performance_center.py:
+
+import os
+import requests
+import zipfile
+
+def download_and_extract_results(start_time, end_time):
+    # Perform Performance Center API calls to download and extract results
+    # Use start_time and end_time as needed
+    # ...
+
+    # Unzip the downloaded folder
+    with zipfile.ZipFile("downloaded_results.zip", "r") as zip_ref:
+        zip_ref.extractall("unzipped_results")
+
+
+access_queries.py:
+
+import pyodbc
+
+def execute_queries(mdb_file_location):
+    # Execute Access queries and write to Excel file
+    # Use mdb_file_location as needed
+    # ...
+
+
+dynatrace_apis.py:
+
+
+import requests
+
+def execute_dynatrace_apis():
+    # Perform Dynatrace API calls and write to Excel file
+    # ...
+
+
+
+=================
+
+import pyodbc
+from openpyxl import Workbook
+
+def execute_queries(mdb_file_location):
+    # Connection string for Access database
+    conn_str = f'DRIVER={{Microsoft Access Driver (*.mdb, *.accdb)}};DBQ={mdb_file_location};'
+
+    # Connect to the Access database
+    connection = pyodbc.connect(conn_str)
+    cursor = connection.cursor()
+
+    # Example query
+    query = "SELECT * FROM YourTable"
+    
+    # Execute the query
+    cursor.execute(query)
+
+    # Get column names
+    columns = [column[0] for column in cursor.description]
+
+    # Create a new workbook and sheet
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "AccessData"
+
+    # Write column names to the sheet
+    for col_num, column_name in enumerate(columns, 1):
+        ws.cell(row=1, column=col_num, value=column_name)
+
+    # Write query results to the sheet
+    for row_num, row in enumerate(cursor.fetchall(), 2):
+        for col_num, value in enumerate(row, 1):
+            ws.cell(row=row_num, column=col_num, value=value)
+
+    # Save the workbook
+    wb.save("AccessQueryResults.xlsx")
+
+    # Close the connection
+    cursor.close()
+    connection.close()
+
+# Example usage
+mdb_file_location = "C:\\path\\to\\your\\database.accdb"
+execute_queries(mdb_file_location)
+
+-------
+
+Sub RunPythonScript()
+    Dim objShell As Object
+    Set objShell = VBA.CreateObject("WScript.Shell")
+
+    ' Adjust the path to your Python executable and main script location
+    objShell.Run "python C:\path\to\your\main.py start_time end_time mdb_file_location"
+
+    Set objShell = Nothing
+End Sub
+
+
+====================================
+
+
+import pyodbc
+from openpyxl import Workbook
+
+def execute_queries(mdb_file_location, query_sheet_mapping):
+    # Connection string for Access database
+    conn_str = f'DRIVER={{Microsoft Access Driver (*.mdb, *.accdb)}};DBQ={mdb_file_location};'
+
+    # Connect to the Access database
+    connection = pyodbc.connect(conn_str)
+    cursor = connection.cursor()
+
+    # Create a new workbook
+    wb = Workbook()
+
+    for query, sheet_name in query_sheet_mapping:
+        # Execute the query
+        cursor.execute(query)
+
+        # Get column names
+        columns = [column[0] for column in cursor.description]
+
+        # Create a new sheet
+        ws = wb.create_sheet(title=sheet_name)
+
+        # Write column names to the sheet
+        for col_num, column_name in enumerate(columns, 1):
+            ws.cell(row=1, column=col_num, value=column_name)
+
+        # Write query results to the sheet
+        for row_num, row in enumerate(cursor.fetchall(), 2):
+            for col_num, value in enumerate(row, 1):
+                ws.cell(row=row_num, column=col_num, value=value)
+
+    # Save the workbook
+    wb.save("AccessQueryResults.xlsx")
+
+    # Close the connection
+    cursor.close()
+    connection.close()
+
+# Example usage with multiple queries and sheet names
+mdb_file_location = "C:\\path\\to\\your\\database.accdb"
+queries_and_sheets = [
+    ("SELECT * FROM Table1", "Sheet1"),
+    ("SELECT * FROM Table2", "Sheet2"),
+    # Add more queries and corresponding sheet names as needed
+]
+
+execute_queries(mdb_file_location, queries_and_sheets)
+
+
+
+import requests
+from xml.etree import ElementTree as ET
+import os
+
+def get_run_result_id(api_url, domain_name, project_name, run_id):
+    headers = {"Accept": "application/xml"}
+    url = f"{api_url}/LoadTest/rest/domains/{domain_name}/projects/{project_name}/Runs/{run_id}/Results"
+    
+    response = requests.get(url, headers=headers)
+
+    if response.status_code == 200:
+        root = ET.fromstring(response.text)
+        for run_result in root.findall(".//{http://www.hp.com/PC/REST/API}RunResult"):
+            name = run_result.find("{http://www.hp.com/PC/REST/API}Name").text
+            if name == "Reports.zip":
+                return run_result.find("{http://www.hp.com/PC/REST/API}ID").text
+    else:
+        print(f"Error: {response.status_code} - {response.text}")
+        return None
+
+def download_reports_zip(api_url, domain_name, project_name, run_id, result_id, download_folder):
+    url = f"{api_url}/LoadTest/rest/domains/{domain_name}/projects/{project_name}/Runs/{run_id}/Results/{result_id}/data"
+    
+    response = requests.get(url)
+
+    if response.status_code == 200:
+        # Save the zip file
+        zip_file_path = os.path.join(download_folder, "Reports.zip")
+        with open(zip_file_path, "wb") as zip_file:
+            zip_file.write(response.content)
+        print(f"Reports.zip downloaded successfully to {zip_file_path}")
+    else:
+        print(f"Error: {response.status_code} - {response.text}")
+
+# Example usage
+api_url = "http://<LRE_Server>"
+domain_name = "YourDomain"
+project_name = "YourProject"
+run_id = "14"
+
+# Step 1: Get the RunResult ID
+result_id = get_run_result_id(api_url, domain_name, project_name, run_id)
+
+# Step 2: Download the Reports.zip file
+if result_id:
+    download_folder = "C:\\path\\to\\download\\folder"
+    download_reports_zip(api_url, domain_name, project_name, run_id, result_id, download_folder)
+
+
+
+=====================================
+
 ThisWorkbook.Sheets("Sheet2").Range("A7").Resize(Workbooks("AnotherWorkbook.xlsx").Sheets("Sheet1").Cells(Rows.Count, "A").End(xlUp).Row - 6, Columns.Count).Value = Workbooks("AnotherWorkbook.xlsx").Sheets("Sheet1").Range("A7").Resize(Workbooks("AnotherWorkbook.xlsx").Sheets("Sheet1").Cells(Rows.Count, "A").End(xlUp).Row - 6, Columns.Count).Value
 
 Sub ExternalSort(trxData As Variant)
