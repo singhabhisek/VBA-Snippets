@@ -1,3 +1,95 @@
+Sub CheckPythonInstallation()
+    Dim objShell As Object
+    Dim strCommand As String
+    Dim strOutput As String
+    
+    ' Create a Shell object
+    Set objShell = CreateObject("WScript.Shell")
+    
+    ' Define the command to execute
+    strCommand = "python --version"
+    
+    ' Execute the command and capture the output
+    strOutput = objShell.Exec(strCommand).StdOut.ReadAll
+    
+    ' Check if Python is installed
+    If InStr(strOutput, "Python") > 0 Then
+        MsgBox "Python is installed. Version: " & strOutput, vbInformation
+    Else
+        MsgBox "Python is not installed.", vbExclamation
+    End If
+    
+    ' Release the Shell object
+    Set objShell = Nothing
+End Sub
+
+Sub CheckOpenpyxlInstallation()
+    Dim objShell As Object
+    Dim strCommand As String
+    Dim strOutput As String
+    
+    ' Create a Shell object
+    Set objShell = CreateObject("WScript.Shell")
+    
+    ' Define the command to execute (Python script)
+    strCommand = "python -c ""import openpyxl; print('openpyxl is installed')"""
+    
+    ' Execute the command and capture the output
+    strOutput = objShell.Exec(strCommand).StdOut.ReadAll
+    
+    ' Check if openpyxl is installed
+    If InStr(strOutput, "openpyxl is installed") > 0 Then
+        MsgBox "openpyxl is installed.", vbInformation
+    Else
+        MsgBox "openpyxl is not installed.", vbExclamation
+    End If
+    
+    ' Release the Shell object
+    Set objShell = Nothing
+End Sub
+
+==================
+
+First, make sure you have Django installed. You can install it via pip:
+Copy code
+pip install django
+Create a new Django project:
+Copy code
+django-admin startproject mywebsite
+Create a new Django app:
+bash
+Copy code
+cd mywebsite
+python manage.py startapp myapp
+Define a view in your app (myapp/views.py):
+python
+Copy code
+from django.http import HttpResponse
+
+def hello_world(request):
+    return HttpResponse("Hello, World!")
+Define a URL pattern for this view (myapp/urls.py):
+python
+Copy code
+from django.urls import path
+from . import views
+
+urlpatterns = [
+    path('', views.hello_world, name='hello_world'),
+]
+Include this app's URLs in the project's URLconf (mywebsite/urls.py):
+python
+Copy code
+from django.contrib import admin
+from django.urls import path, include
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('', include('myapp.urls')),
+]
+Run the development server:
+=====================
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
