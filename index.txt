@@ -1,0 +1,278 @@
+from flask import Flask, render_template, request, jsonify
+import requests
+import json
+
+app = Flask(__name__)
+
+# Load configuration from config.json
+with open('config.json') as f:
+    config = json.load(f)
+
+# Populate services list from config
+services = [entry.get('serviceName', entry.get('service')) for entry in config['entries']]
+
+@app.route('/')
+def index():
+    return render_template('index.html', services=services)
+
+@app.route('/execute', methods=['POST'])
+def execute():
+    data = request.get_json()  # Parse JSON data from request
+    selected_services = data.get('services', [])
+    iteration_count = int(data.get('iterationCount', 1))  # Convert to integer, default to 1 if not provided
+
+    if not selected_services:
+        return jsonify({'status': 'error', 'message': 'No services selected!'})
+
+    result = {'status': 'success', 'responses': {}}
+    overall_status = 'PASS'  # Assume PASS initially for overall status
+
+    for service in selected_services:
+        responses = []
+        service_status = 'PASS'  # Assume PASS initially for service status
+        for entry in config['entries']:
+            if entry.get('serviceName', entry.get('service')) == service:
+                for i in range(iteration_count):  # Perform iterations
+                    response = requests.get(entry['endpoint'])
+                    # Perform validation based on successCriteria
+                    iteration_status = 'PASS' if entry['successCriteria'] in response.text else 'FAIL'
+                    if iteration_status == 'FAIL':
+                        service_status = 'FAIL'  # Update service_status if any iteration fails
+                    elif service_status != 'FAIL' and iteration_status == 'AMBER':
+                        service_status = 'AMBER'  # Update service_status if any iteration is AMBER
+                    responses.append({'response': response.text, 'status': iteration_status})
+                break
+        # Update overall status for the service
+        if service_status == 'FAIL':
+            overall_status = 'FAIL'
+        elif overall_status != 'FAIL' and service_status == 'AMBER':
+            overall_status = 'AMBER'
+
+        result['responses'][service] = responses
+
+    # Update overall status for the response
+    result['overall_status'] = overall_status
+
+    return jsonify(result)
+
+
+
+if __name__ == '__main__':
+    app.run(debug=True)
+
+
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Service Checker</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+        $(document).ready(function(){
+            $('#submit-btn').click(function(){
+                var selectedServices = [];
+                $('input[name="service"]:checked').each(function() {
+                    selectedServices.push($(this).val());
+                });
+                var iterationCount = $('#iteration-count').val(); // Get the value of iteration count
+                var requestData = {
+                    services: selectedServices,
+                    iterationCount: iterationCount // Include iteration count in the data
+                };
+                $.ajax({
+                    url: '/execute',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(requestData), // Stringify the request data
+                    success: function(response){
+                        $.each(response.responses, function(serviceName, serviceResponses) {
+                            var passedCount = 0; // Counter for passing iterations
+                            var overallStatus = 'PASS';
+                            var iconColor = 'text-success';
+                            var accordionContainer = $('<div class="accordion" id="accordion-' + serviceName + '">');
+                            $.each(serviceResponses, function(index, iterationResponse) {
+                                var iterationStatus = iterationResponse.status === 'PASS' ? 'PASS' : 'FAIL';
+                                if (iterationStatus === 'PASS') {
+                                    passedCount++; // Increment passing count
+                                } else {
+                                    overallStatus = 'FAIL'; // If any iteration fails, overall status is FAIL
+                                }
+                                var iterationNumber = index + 1;
+                                var accordionItem = $('<div class="card">');
+                                var accordionHeader = $('<div class="card-header" id="heading-' + serviceName + '-' + iterationNumber + '">').append(
+                                    $('<h2 class="mb-0">').append(
+                                        $('<button class="btn btn-link" type="button" data-toggle="collapse" data-target="#collapse-' + serviceName + '-' + iterationNumber + '">').text('Iteration ' + iterationNumber + ' - ' + iterationStatus)
+                                    )
+                                );
+                                var accordionCollapse = $('<div id="collapse-' + serviceName + '-' + iterationNumber + '" class="collapse" aria-labelledby="heading-' + serviceName + '-' + iterationNumber + '" data-parent="#accordion-' + serviceName + '">').append(
+                                    $('<div class="card-body">').text(iterationResponse.response)
+                                );
+                                accordionItem.append(accordionHeader, accordionCollapse);
+                                accordionContainer.append(accordionItem);
+                            });
+                            // Determine overall status and icon color based on passing count and total iterations
+                            if (passedCount === response.responses[serviceName].length) {
+                                iconColor = 'text-success';
+                            } else if (passedCount > 0) {
+                                overallStatus = 'AMBER';
+                                iconColor = 'text-warning';
+                            } else {
+                                overallStatus = 'FAIL';
+                                iconColor = 'text-danger';
+                            }
+                            var statusCell = $('td:contains(' + serviceName + ')').siblings('td:nth-child(3)').find('img');
+                            statusCell.attr('src', '').addClass(iconColor); // Update status icon color based on overall status
+                            var infoCell = $('td:contains(' + serviceName + ')').siblings('td:nth-child(5)');
+                            var commandButton = $('<button class="btn btn-info show-info-btn">Show Info</button>');
+                            infoCell.html(commandButton); // Add command button to Info column
+                            commandButton.click(function() {
+                                $('#infoModal .modal-body').html(accordionContainer);
+                                $('#infoModal').modal('show');
+                            });
+                        });
+                        alert('Execution completed with overall status: ' + overallStatus);
+                    },
+                    error: function(xhr, status, error) {
+                        alert('Error: ' + xhr.responseText);
+                    }
+                });
+            });
+
+            $('#export-btn').click(function(){
+                // Implementation for exporting results to CSV
+                var csvContent = "data:text/csv;charset=utf-8,";
+                csvContent += "Service Name,Iteration,Status,Response\n";
+                $.each(response.responses, function(serviceName, serviceResponses) {
+                    $.each(serviceResponses, function(index, iterationResponse) {
+                        var iterationNumber = index + 1;
+                        var iterationStatus = iterationResponse.status === 'PASS' ? 'PASS' : 'FAIL';
+                        csvContent += '"' + serviceName + '",' + iterationNumber + ',' + iterationStatus + ',"' + iterationResponse.response + '"\n';
+                    });
+                });
+                var encodedUri = encodeURI(csvContent);
+                var link = document.createElement("a");
+                link.setAttribute("href", encodedUri);
+                link.setAttribute("download", "service_results.csv");
+                document.body.appendChild(link);
+                link.click();
+            });
+
+            $('input[type="reset"]').click(function() {
+                $('input[type="checkbox"]').prop('checked', false);
+                $('.status-icon').attr('src', '').removeClass('text-success text-warning text-danger');
+                $('td:nth-child(5)').empty();
+            });
+        });
+    </script>
+</head>
+<body>
+    <h1>Service Checker</h1>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Select</th>
+                <th>Service Name</th>
+                <th>Status</th>
+                <th>Description</th>
+                <th>Info</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for service in services %}
+            <tr>
+                <td><input type="checkbox" name="service" value="{{ service }}"></td>
+                <td>{{ service }}</td>
+                <td><img src="" alt="Status" class="status-icon"></td>
+                <td>Description of service</td>
+                <td></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <br>
+    <label for="iteration-count">Iteration Count:</label>
+    <input type="number" id="iteration-count" name="iteration-count" value="1">
+    <br><br>
+    <input type="button" id="submit-btn" value="Submit" class="btn btn-primary">
+    <input type="button" id="export-btn" value="Export to CSV" class="btn btn-success">
+    <input type="reset" value="Reset" class="btn btn-secondary">
+
+    <!-- Modal -->
+    <div class="modal fade" id="infoModal" tabindex="-1" role="dialog" aria-labelledby="infoModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="infoModalLabel">Service Info</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <!-- Accordion content goes here -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+
+
+
+
+
+
+
+{
+  "entries": [
+    {
+      "service": "UserVerification",
+      "operationName": "ValidateUser",
+      "useCase": "Description of Use Case for ValidateUser",
+      "successCriteria": "user",
+      "endpoint": "https://jsonplaceholder.typicode.com/posts/1",
+      "sampleRequestLocation": "",
+      "additionalHeaders": {
+        "clientId": "",
+        "secret": "",
+        "Header1": "",
+        "Header2": ""
+      }
+    },
+    {
+      "serviceName": "ProductManagement",
+      "operationName": "AddProduct",
+      "useCase": "Description of Use Case for AddProduct",
+      "successCriteria": "product",
+      "endpoint": "https://jsonplaceholder.typicode.com/posts/2",
+      "sampleRequestLocation": "",
+      "headers": {
+        "clientId": "",
+        "token": "",
+        "Header3": "",
+        "Header4": ""
+      }
+    },
+    {
+      "serviceName": "OrderProcessing",
+      "operationName": "PlaceOrder",
+      "useCase": "Description of Use Case for PlaceOrder",
+      "successCriteria": "order",
+      "endpoint": "https://jsonplaceholder.typicode.com/posts/3",
+      "sampleRequestLocation": "",
+      "headers": {
+        "customerId": "",
+        "apiKey": "",
+        "Header5": "",
+        "Header6": ""
+      }
+    }
+  ]
+}
+
+
+
